@@ -1,0 +1,2 @@
+[password]
+arrays = ['meta_password', 'meta_mysql_root_password', 'meta_mysql_password', 'meta_mariadb_password', 'meta_postgres_password', 'meta_redis_password', 'meta_jwt_password']
