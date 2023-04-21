@@ -8,7 +8,9 @@
 
 go >= 1.17
 
-`go install github.com/one-meta/meta-g@latest`
+`go install github.com/one-meta/meta-cli@latest`
+
+或 clone 项目后，`go install`
 
 ## 通过 meta-cli new 创建项目
 
