@@ -20,4 +20,4 @@ go >= 1.17
 
 `meta-cli renew`
 
-## 更多可参考 meta wiki
+## 更多可参考 [meta wiki](https://github.com/one-meta/meta/wiki/)
