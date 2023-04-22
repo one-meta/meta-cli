@@ -212,16 +212,12 @@ func removeGitFile(targetPath string) {
 func removeFiles(rootPath string, files []string, show bool) {
 	for _, v := range files {
 		targetPath := getSeperator(rootPath, v)
-		if _, err := os.Stat(targetPath); err != nil {
-			if os.IsExist(err) {
-				if show {
-					log.Println("remove", targetPath)
-				}
-				err := os.RemoveAll(targetPath)
-				if err != nil {
-					fmt.Println("remove file err ", err)
-				}
-			}
+		if show {
+			log.Println("remove", targetPath)
+		}
+		err := os.RemoveAll(targetPath)
+		if err != nil {
+			fmt.Println("remove file err ", err)
 		}
 	}
 }
