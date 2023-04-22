@@ -3,17 +3,17 @@ package util
 import (
 	"bufio"
 	"fmt"
+	"io"
+	"log"
+	"os"
+	"os/exec"
+	"strings"
+
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/go-git/go-git/v5"
 	"github.com/one-meta/meta-cli/entity"
 	"github.com/sethvargo/go-password/password"
 	"github.com/spf13/viper"
-	"io"
-	"log"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 )
 
 type Answer struct {
@@ -34,13 +34,15 @@ var (
 			},
 		},
 	}
+	Separator = string(os.PathSeparator)
 )
 
 func init() {
 	LoadConfig()
 }
+
 func ReNewProject() {
-	fileExist := checkFiles("meta", []string{"resource/config.toml", "Docker-Compose.yaml"})
+	fileExist := checkFiles("meta", []string{getSeperator("resource", "config.toml"), "Docker-Compose.yaml"})
 	if fileExist {
 		fmt.Println("Initialization has been run, meta/data will be delete and current password will be replace if continue.")
 		fmt.Println("Are you sure? \n[y]es or [n]o (default: no):")
@@ -50,7 +52,7 @@ func ReNewProject() {
 			fmt.Println("Canceled")
 			os.Exit(0)
 		}
-		//delete meta/data
+		// delete meta/data
 		removeFiles("meta", []string{"data"}, true)
 	}
 
@@ -70,8 +72,9 @@ func ReNewProject() {
 	cloneAndInitFile(false, localDev)
 	fmt.Println("done.")
 }
+
 func NewProject() {
-	fileExist := checkFiles("meta", []string{"resource/config.toml", "Docker-Compose.yaml"})
+	fileExist := checkFiles("meta", []string{getSeperator("resource", "config.toml"), "Docker-Compose.yaml"})
 	if fileExist {
 		fmt.Println("Initialization has been run, exit.")
 		os.Exit(0)
@@ -98,20 +101,20 @@ func NewProject() {
 func cloneAndInitFile(firstLoad, localDev bool) {
 	pwdMap := make(map[string]string)
 
-	//schema := "http"
-	//domain := "gitlab.local"
+	// schema := "http"
+	// domain := "gitlab.local"
 	schema := "https"
 	domain := "github.com"
 	baseUrl := fmt.Sprintf("%s://%s", schema, domain)
-	//检测部分依赖
+	// 检测部分依赖
 	dependArrays := []string{"meta-g", "meta-front-g"}
 	exitFlag := checkExecute(domain, dependArrays)
 	if exitFlag {
 		os.Exit(0)
 	}
-	//clone项目
+	// clone项目
 	if firstLoad {
-		//git clone 后端项目
+		// git clone 后端项目
 		GitClone("meta", baseUrl)
 		//////git clone 前端项目
 		GitClone("meta-front", baseUrl)
@@ -119,10 +122,10 @@ func cloneAndInitFile(firstLoad, localDev bool) {
 		GitClone("meta-front-g", baseUrl)
 	}
 
-	checkFiles("meta", []string{".template/config.toml", ".template/Docker-Compose.yaml"})
-	checkFiles("meta-front", []string{".template/Docker-Compose.yaml"})
-	checkFiles("meta-front-g", []string{"config.toml", "BasePage/Detail.tsx", "BasePage/index.tsx"})
-	//init
+	checkFiles("meta", []string{getSeperator(".template", "config.toml"), getSeperator(".template", "Docker-Compose.yaml")})
+	checkFiles("meta-front", []string{getSeperator(".template", "Docker-Compose.yaml")})
+	checkFiles("meta-front-g", []string{"config.toml", getSeperator("BasePage", "Detail.tsx"), getSeperator("BasePage", "index.tsx")})
+	// init
 	for _, v := range CFG.Password.Arrays {
 		pwd, err := password.Generate(24, 8, 0, false, false)
 		if err != nil {
@@ -130,22 +133,22 @@ func cloneAndInitFile(firstLoad, localDev bool) {
 		}
 		pwdMap[v] = pwd
 	}
-	initTemplate(pwdMap, localDev, "meta", "resource/config.toml", ".template/config.toml")
-	initTemplate(pwdMap, localDev, "meta", "Docker-Compose.yaml", ".template/Docker-Compose.yaml")
-	initTemplate(pwdMap, localDev, "meta-front", "Docker-Compose.yaml", ".template/Docker-Compose.yaml")
+	initTemplate(pwdMap, localDev, "meta", getSeperator("resource", "config.toml"), getSeperator(".template", "config.toml"))
+	initTemplate(pwdMap, localDev, "meta", "Docker-Compose.yaml", getSeperator(".template", "Docker-Compose.yaml"))
+	initTemplate(pwdMap, localDev, "meta-front", "Docker-Compose.yaml", getSeperator(".template", "Docker-Compose.yaml"))
 }
 
 func initTemplate(pwdMap map[string]string, localDev bool, rootPath, targetFile, sourceFile string) {
 	removeFiles(rootPath, []string{targetFile}, false)
 
-	sourcePath := filepath.Join(rootPath, sourceFile)
+	sourcePath := getSeperator(rootPath, sourceFile)
 	if _, err := os.Stat(sourcePath); err != nil {
 		if os.IsNotExist(err) {
 			log.Fatal(err)
 		}
 	}
 	file, err := os.Open(sourcePath)
-	resultFile, err := os.Create(filepath.Join(rootPath, targetFile))
+	resultFile, err := os.Create(getSeperator(rootPath, targetFile))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -160,12 +163,12 @@ func initTemplate(pwdMap map[string]string, localDev bool, rootPath, targetFile,
 		}
 		target := string(content)
 		if localDev {
-			//后端配置文件
+			// 后端配置文件
 			if rootPath == "meta" && strings.HasPrefix(target, "host = ") {
 				target = "host = \"127.0.0.1\""
 			}
 		}
-		//模板单行数据中包含_password
+		// 模板单行数据中包含_password
 		if strings.Contains(target, "_password") {
 			for k, v := range pwdMap {
 				if strings.Contains(target, k) {
@@ -197,18 +200,18 @@ func GitClone(targetPath, baseUrl string) {
 	repository := fmt.Sprintf("%s/one-meta/%s.git", baseUrl, targetPath)
 	log.Println("git clone", repository)
 	GitClone2Target(targetPath, repository)
-	//删除 .git .github 文件
+	// 删除 .git .github 文件
 	removeGitFile(targetPath)
 }
 
 func removeGitFile(targetPath string) {
-	//删除 .git .github 文件
+	// 删除 .git .github 文件
 	removeFiles(targetPath, []string{".git", ".github"}, true)
 }
 
 func removeFiles(rootPath string, files []string, show bool) {
 	for _, v := range files {
-		targetPath := filepath.Join(rootPath, v)
+		targetPath := getSeperator(rootPath, v)
 		if _, err := os.Stat(targetPath); err != nil {
 			if os.IsExist(err) {
 				if show {
@@ -222,12 +225,13 @@ func removeFiles(rootPath string, files []string, show bool) {
 		}
 	}
 }
+
 func checkFiles(rootPath string, files []string) bool {
 	for _, v := range files {
-		targetPath := filepath.Join(rootPath, v)
+		targetPath := getSeperator(rootPath, v)
 		if _, err := os.Stat(targetPath); err != nil {
 			if os.IsNotExist(err) {
-				//log.Fatalf("File: %s not exist", targetPath)
+				// log.Fatalf("File: %s not exist", targetPath)
 				return false
 			}
 		}
@@ -241,7 +245,6 @@ func GitClone2Target(targetPath, repository string) {
 		URL:      repository,
 		Progress: os.Stdout,
 	})
-
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -254,13 +257,19 @@ func LoadConfig() error {
 	if err != nil {
 		fmt.Println("config.toml not found, create one")
 		viper.SetDefault("password", map[string][]string{
-			"arrays": {"meta_password", "meta_mysql_root_password",
+			"arrays": {
+				"meta_password", "meta_mysql_root_password",
 				"meta_mysql_password", "meta_mariadb_password",
 				"meta_postgres_password", "meta_redis_password",
 				"meta_jwt_password",
-			}})
+			},
+		})
 		viper.SafeWriteConfigAs("config.toml")
 	}
 	err = viper.Unmarshal(&CFG)
 	return err
+}
+
+func getSeperator(filePath ...string) string {
+	return strings.Join(filePath, Separator)
 }
