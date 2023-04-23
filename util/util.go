@@ -201,7 +201,7 @@ func GitClone(targetPath, baseUrl string) {
 	log.Println("git clone", repository)
 	GitClone2Target(targetPath, repository)
 	// 删除 .git .github 文件
-	removeGitFile(targetPath)
+	// removeGitFile(targetPath)
 }
 
 func removeGitFile(targetPath string) {
